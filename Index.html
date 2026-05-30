@@ -1,0 +1,1066 @@
+```html
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SatoshiFaucet Mini-App</title>
+    <style>
+        /* Farbpalette & System-Tokens (Originalgetreues Design) */
+        :root {
+            --bg-color: #060b26;
+            --card-color: #111a3e;
+            --accent-blue: #00d2ff;
+            --accent-gold: #ffb703;
+            --accent-green: #00e676;
+            --text-color: #ffffff;
+            --text-muted: #8f9cae;
+            --black-bg: #02040a;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--black-bg);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 0;
+        }
+
+        /* Responsive Container: Fullscreen auf Mobilgeräten, Smartphone-Rahmen auf PCs */
+        .phone-container {
+            width: 100%;
+            max-width: 420px;
+            height: 100vh;
+            background-color: var(--bg-color);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+        }
+
+        @media (min-width: 600px) {
+            .phone-container {
+                height: 85vh;
+                border-radius: 40px;
+                border: 8px solid #1e295d;
+            }
+        }
+
+        /* Simulierter Telegram Header */
+        .tg-header {
+            background-color: rgba(2, 4, 10, 0.8);
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #0a0f2d;
+            font-size: 11px;
+            z-index: 30;
+        }
+
+        .tg-close {
+            color: var(--accent-blue);
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .tg-app-title {
+            text-align: center;
+        }
+
+        .tg-app-title h4 {
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .tg-app-title p {
+            font-size: 9px;
+            color: var(--text-muted);
+        }
+
+        /* Echter App Header */
+        .app-header {
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--bg-color);
+            border-bottom: 1px solid #111a3e;
+            z-index: 20;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .logo-icon {
+            width: 22px;
+            height: 22px;
+            background: linear-gradient(45deg, #8a2be2, #4169e1);
+            transform: rotate(45deg);
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo-text {
+            transform: rotate(-45deg);
+            font-size: 9px;
+            font-weight: bold;
+        }
+
+        /* Live-Guthaben Box */
+        .balance-box {
+            background-color: rgba(2, 4, 10, 0.5);
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px solid #111a3e;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .balance-value {
+            color: var(--accent-gold);
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .balance-unit {
+            font-size: 9px;
+            color: var(--text-muted);
+            font-weight: bold;
+        }
+
+        /* Hauptinhalt Scrollbox */
+        .content-body {
+            flex: 1;
+            overflow-y: auto;
+            padding-bottom: 90px;
+            background: linear-gradient(180deg, var(--bg-color) 0%, #030617 100%);
+        }
+
+        /* Seitensteuerung */
+        .page-content {
+            display: none;
+            padding: 20px;
+        }
+
+        .page-content.active {
+            display: block;
+        }
+
+        /* ================= HOME PAGE ================= */
+        .profile-section {
+            text-align: center;
+            padding: 10px 0;
+        }
+
+        .welcome-text {
+            font-size: 20px;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        /* Kreis-Avatar mit echtem SVG-Fortschrittsring */
+        .avatar-wrapper {
+            position: relative;
+            width: 110px;
+            height: 110px;
+            margin: 0 auto 15px auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .avatar-circle-svg {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            transform: rotate(-90deg);
+        }
+
+        .avatar-img-box {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 2px solid var(--bg-color);
+            background-color: #16224f;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        .avatar-img-box img {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+        }
+
+        .lvl-badge {
+            position: absolute;
+            bottom: -5px;
+            background-color: #111a3e;
+            border: 2px solid var(--accent-blue);
+            border-radius: 12px;
+            padding: 2px 12px;
+            font-size: 11px;
+            font-weight: bold;
+            z-index: 20;
+        }
+
+        /* Fortschrittsanzeige */
+        .progress-container {
+            width: 90%;
+            margin: 20px auto 5px auto;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .progress-track {
+            width: 100%;
+            height: 8px;
+            background-color: #111a3e;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            width: 0%;
+            height: 100%;
+            background-color: var(--accent-blue);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            color: #55628c;
+            margin-top: 8px;
+        }
+
+        /* Grid */
+        .grid-cards {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 25px;
+        }
+
+        .card-item {
+            background-color: var(--card-color);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        .card-item:active {
+            transform: scale(0.95);
+        }
+
+        .card-icon {
+            font-size: 28px;
+            margin-bottom: 6px;
+            display: block;
+        }
+
+        .card-title {
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .card-desc {
+            font-size: 9px;
+            color: var(--accent-blue);
+            margin-top: 3px;
+        }
+
+        /* ================= TASKS PAGE ================= */
+        .input-card {
+            background-color: var(--card-color);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 15px;
+        }
+
+        .input-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .select-currency {
+            width: 100%;
+            background-color: rgba(2, 4, 10, 0.6);
+            border: 1px solid #111a3e;
+            border-radius: 12px;
+            padding: 12px;
+            color: #fff;
+            font-size: 14px;
+            font-weight: bold;
+            outline: none;
+            cursor: pointer;
+            -webkit-appearance: none;
+        }
+
+        .banner-ad {
+            background: linear-gradient(90deg, #2c1a14 0%, #1c142c 100%);
+            border: 1px solid #bf7a2b;
+            border-radius: 16px;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .banner-info h4 {
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .banner-info p {
+            font-size: 10px;
+            color: var(--accent-gold);
+            margin-top: 2px;
+        }
+
+        .btn-ad {
+            background-color: var(--accent-gold);
+            color: #02040a;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 11px;
+            cursor: pointer;
+        }
+
+        .task-list-title {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: bold;
+            margin-bottom: 12px;
+        }
+
+        /* Task Element */
+        .task-row {
+            background-color: var(--card-color);
+            border-radius: 16px;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .task-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .task-icon {
+            width: 40px;
+            height: 40px;
+            background-color: rgba(28, 39, 84, 0.6);
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 20px;
+        }
+
+        .task-details h4 {
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .task-reward {
+            color: var(--accent-green);
+            font-size: 11px;
+            font-weight: bold;
+            margin-top: 3px;
+        }
+
+        .btn-start {
+            background-color: #2441e3;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        /* ================= FAUCET PAGE ================= */
+        .faucet-box {
+            text-align: center;
+            padding: 20px 0;
+        }
+
+        .faucet-icon {
+            width: 80px;
+            height: 80px;
+            background-color: rgba(0, 210, 255, 0.1);
+            border: 2px solid var(--accent-blue);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 35px;
+            margin: 0 auto 20px auto;
+        }
+
+        .claim-card {
+            background-color: var(--card-color);
+            border-radius: 20px;
+            padding: 25px;
+            max-width: 340px;
+            margin: 0 auto;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.03);
+        }
+
+        .claim-amount {
+            font-size: 22px;
+            font-weight: 900;
+            color: var(--accent-green);
+            margin: 10px 0 20px 0;
+        }
+
+        .btn-claim {
+            width: 100%;
+            background: linear-gradient(90deg, var(--accent-blue) 0%, #2441e3 100%);
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 12px;
+            font-weight: bold;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+        }
+
+        /* ================= COUPONS PAGE ================= */
+        .coupon-input-box {
+            background-color: rgba(2, 4, 10, 0.6);
+            border: 1px solid #111a3e;
+            border-radius: 12px;
+            padding: 12px;
+            width: 100%;
+            color: white;
+            font-weight: bold;
+            font-size: 16px;
+            text-align: center;
+            text-transform: uppercase;
+            outline: none;
+            margin-bottom: 15px;
+        }
+
+        .btn-coupon {
+            width: 100%;
+            background-color: var(--accent-gold);
+            color: #02040a;
+            border: none;
+            padding: 14px;
+            border-radius: 12px;
+            font-weight: 900;
+            font-size: 12px;
+            text-transform: uppercase;
+            cursor: pointer;
+        }
+
+        .hint-box {
+            background-color: rgba(17, 26, 62, 0.3);
+            border: 1px solid rgba(17, 26, 62, 0.7);
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 30px;
+            text-align: left;
+        }
+
+        /* ================= COUNTDOWN OVERLAY ================= */
+        .countdown-overlay {
+            position: absolute;
+            inset: 0;
+            background-color: rgba(2, 4, 10, 0.95);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .countdown-overlay.show {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .timer-circle {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 4px solid var(--accent-blue);
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 25px;
+        }
+
+        .timer-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--accent-blue);
+            animation: reverse-spin 1s linear infinite; /* Behebt das Mitdrehen der Zahl */
+        }
+
+        /* ================= NAV LEISTE UNTEN ================= */
+        .nav-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: #03071e;
+            border-top: 1px solid #111a3e;
+            display: flex;
+            justify-content: space-around;
+            padding: 12px 0 16px 0;
+            z-index: 40;
+        }
+
+        .nav-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+
+        .nav-btn.active {
+            color: var(--accent-blue);
+        }
+
+        .nav-btn-icon {
+            font-size: 20px;
+            margin-bottom: 3px;
+        }
+
+        .nav-btn-text {
+            font-size: 10px;
+            font-weight: bold;
+        }
+
+        /* Toast Popup */
+        .toast {
+            position: absolute;
+            bottom: 85px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background-color: #111a3e;
+            border: 1px solid var(--accent-blue);
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            z-index: 500;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* Keyframes */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes reverse-spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(-360deg); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="phone-container">
+    
+    <!-- Telegram Bar -->
+    <div class="tg-header">
+        <span class="tg-close" onclick="resetApp()">Schließen</span>
+        <div class="tg-app-title">
+            <h4>SatoshiFaucet</h4>
+            <p>Mini-App</p>
+        </div>
+        <div style="display: flex; align-items: center; gap: 4px;">
+            <span style="width: 6px; height: 6px; border-radius: 50%; background-color: var(--accent-green);"></span>
+            <span style="color: var(--text-muted); font-size: 10px;">ONLINE</span>
+        </div>
+    </div>
+
+    <!-- App Header mit Live-Guthaben -->
+    <div class="app-header">
+        <div class="logo-area">
+            <div class="logo-icon">
+                <span class="logo-text">SF</span>
+            </div>
+            <span>Satoshi<span style="color: var(--accent-blue)">Faucet</span></span>
+        </div>
+        
+        <div class="balance-box">
+            <span class="balance-value" id="balance-val">0.00000000</span>
+            <span class="balance-unit" id="balance-unit">DOGE</span>
+        </div>
+    </div>
+
+    <!-- Scrollbarer Inhalt -->
+    <div class="content-body">
+        
+        <!-- ================= HOME PAGE ================= -->
+        <div id="page-home" class="page-content active">
+            <div class="profile-section">
+                <h2 class="welcome-text">Hello Katzendario 🇮🇹 🇩🇪</h2>
+                
+                <div class="avatar-wrapper">
+                    <!-- Fortschritts-Kreis -->
+                    <svg class="avatar-circle-svg" viewBox="0 0 36 36">
+                        <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#111a3e" stroke-width="2"/>
+                        <path id="circle-progress" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#00d2ff" stroke-width="2" stroke-dasharray="0, 100"/>
+                    </svg>
+                    
+                    <div class="avatar-img-box">
+                        <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Katzendario" alt="Avatar">
+                    </div>
+                    
+                    <div class="lvl-badge" id="level-lbl">Lvl 0</div>
+                </div>
+
+                <div class="progress-container">
+                    <div class="progress-header">
+                        <span>Progress</span>
+                        <span id="progress-percent">0%</span>
+                    </div>
+                    <div class="progress-track">
+                        <div class="progress-bar" id="progress-bar"></div>
+                    </div>
+                    <div class="progress-info">
+                        <span>Belohnung: Extra Coins</span>
+                        <span id="next-lvl-info" style="color: var(--accent-blue); font-weight: bold;">Next: 3 Tasks</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid-cards">
+                <div class="card-item" onclick="switchPage('tasks', 'nav-tasks')">
+                    <span class="card-icon">🎯</span>
+                    <div class="card-title">Challenges</div>
+                    <div class="card-desc">Tasks starten</div>
+                </div>
+                <div class="card-item" onclick="showNotification('🏆 Leaderboard startet bald!')">
+                    <span class="card-icon" style="color: var(--accent-gold);">📈</span>
+                    <div class="card-title">Leaderboard</div>
+                    <div class="card-desc">Top Spieler</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= TASKS PAGE ================= -->
+        <div id="page-tasks" class="page-content">
+            <div class="input-card">
+                <div class="input-label">Payment Currency</div>
+                <select id="curr-select" onchange="updateCurrency(this.value)" class="select-currency">
+                    <option value="DOGE">Dogecoin (DOGE)</option>
+                    <option value="SAT">Satoshi (SAT)</option>
+                </select>
+            </div>
+
+            <div class="banner-ad">
+                <div class="banner-info">
+                    <h4>Your task here</h4>
+                    <p>Promote your link</p>
+                </div>
+                <button class="btn-ad" onclick="showNotification('📢 Support @SatoshiFaucet kontaktieren')">ADVERTISE</button>
+            </div>
+
+            <div class="task-list-title">Verfügbare Tasks</div>
+
+            <!-- Task 1 -->
+            <div class="task-row">
+                <div class="task-left">
+                    <div class="task-icon" style="color: var(--accent-blue);">🌐</div>
+                    <div class="task-details">
+                        <h4>Bitfaucet</h4>
+                        <div class="task-reward" id="t1-rew">0.00983333 DOGE</div>
+                    </div>
+                </div>
+                <button class="btn-start" onclick="triggerTask('task-1', 4)">START</button>
+            </div>
+
+            <!-- Task 2 -->
+            <div class="task-row">
+                <div class="task-left">
+                    <div class="task-icon" style="color: var(--accent-gold);">🔥</div>
+                    <div class="task-details">
+                        <h4>Daily Faucet Check-In</h4>
+                        <div class="task-reward" id="t2-rew">0.00500000 DOGE</div>
+                    </div>
+                </div>
+                <button class="btn-start" onclick="triggerTask('task-2', 3)">START</button>
+            </div>
+        </div>
+
+        <!-- ================= FAUCET PAGE ================= -->
+        <div id="page-faucet" class="page-content">
+            <div class="faucet-box">
+                <div class="faucet-icon">💧</div>
+                <h3 style="font-size: 18px; font-weight: bold; margin-bottom: 8px;">Kostenloses Faucet</h3>
+                <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 25px;">Fordere jede Minute deine Gratis-Coins an!</p>
+                
+                <div class="claim-card">
+                    <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Bereit zum Claimen</div>
+                    <div class="claim-amount" id="faucet-rew">0.02000000 DOGE</div>
+                    <button class="btn-claim" id="faucet-btn" onclick="claimFaucet()">Claimen</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= LINKS PAGE ================= -->
+        <div id="page-links" class="page-content">
+            <h3 style="font-size: 16px; font-weight: bold; margin-bottom: 8px;">Gesponserte Links</h3>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 20px;">Besuche Werbepartner für extra hohe Ausschüttungen.</p>
+
+            <div class="task-row">
+                <div class="task-left">
+                    <div class="task-icon">🔗</div>
+                    <div class="task-details">
+                        <h4>SponsorLink 1</h4>
+                        <div class="task-reward" id="l1-rew">0.02500000 DOGE</div>
+                    </div>
+                </div>
+                <button class="btn-start" onclick="triggerTask('link-1', 5)">START</button>
+            </div>
+        </div>
+
+        <!-- ================= COUPONS PAGE ================= -->
+        <div id="page-coupons" class="page-content" style="text-align: center;">
+            <div style="font-size: 40px; margin-bottom: 15px;">🎫</div>
+            <h3 style="font-size: 18px; font-weight: bold; margin-bottom: 8px;">Gutscheincode einlösen</h3>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 25px;">Gib einen Aktionscode für Gratis-Guthaben ein.</p>
+
+            <div class="claim-card">
+                <input type="text" id="coupon-field" placeholder="GUTSCHEINCODE" class="coupon-input-box">
+                <button class="btn-coupon" onclick="useCoupon()">Einlösen</button>
+            </div>
+
+            <div class="hint-box">
+                <h4 style="font-size: 12px; color: var(--accent-gold); margin-bottom: 5px;">💡 EXKLUSIVER CODE:</h4>
+                <p style="font-size: 11px; color: var(--text-muted); line-height: 1.4;">Gib den Code <span style="color: #fff; font-weight: bold;">KATZENDARIO</span> ein, um sofort 10.0 DOGE / 1000 Satoshi zu erhalten!</p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Countdown Overlay für Werbeanzeige -->
+    <div class="countdown-overlay" id="timer-overlay">
+        <div class="timer-circle">
+            <span class="timer-number" id="timer-num">5</span>
+        </div>
+        <h3 style="font-size: 16px; font-weight: bold; margin-bottom: 8px;">Sponsor-Seite wird geladen</h3>
+        <p style="font-size: 12px; color: var(--text-muted); text-align: center;">Bitte warte kurz. Dein Krypto-Guthaben wird danach sofort gutgeschrieben.</p>
+    </div>
+
+    <!-- Toast Nachricht -->
+    <div class="toast" id="app-toast">⚡ Aktion erfolgreich!</div>
+
+    <!-- Navigation unten -->
+    <div class="nav-bar">
+        <div class="nav-btn active" id="nav-home" onclick="switchPage('home', 'nav-home')">
+            <span class="nav-btn-icon">🏠</span>
+            <span class="nav-btn-text">Home</span>
+        </div>
+        <div class="nav-btn" id="nav-faucet" onclick="switchPage('faucet', 'nav-faucet')">
+            <span class="nav-btn-icon">💧</span>
+            <span class="nav-btn-text">Faucet</span>
+        </div>
+        <div class="nav-btn" id="nav-links" onclick="switchPage('links', 'nav-links')">
+            <span class="nav-btn-icon">🔗</span>
+            <span class="nav-btn-text">Links</span>
+        </div>
+        <div class="nav-btn" id="nav-tasks" onclick="switchPage('tasks', 'nav-tasks')">
+            <span class="nav-btn-icon">📋</span>
+            <span class="nav-btn-text">Tasks</span>
+        </div>
+        <div class="nav-btn" id="nav-coupons" onclick="switchPage('coupons', 'nav-coupons')">
+            <span class="nav-btn-icon">🎫</span>
+            <span class="nav-btn-text">Coupons</span>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // App State (Datenverwaltung)
+    let appData = {
+        balance: 0.00000000,
+        currency: 'DOGE',
+        level: 0,
+        progress: 0,
+        tasksDone: 0,
+        usedCoupons: []
+    };
+
+    // Belohnungswerte je nach Währung
+    const rewardRates = {
+        DOGE: {
+            'task-1': 0.00983333,
+            'task-2': 0.00500000,
+            'faucet': 0.02000000,
+            'link-1': 0.02500000,
+            'coupon-katzendario': 10.00000000
+        },
+        SAT: {
+            'task-1': 100,
+            'task-2': 50,
+            'faucet': 200,
+            'link-1': 250,
+            'coupon-katzendario': 1000
+        }
+    };
+
+    // Formatierung für Anzeige im UI
+    function format(val) {
+        if (appData.currency === 'SAT') {
+            return Math.floor(val).toString();
+        }
+        return val.toFixed(8);
+    }
+
+    // Tab-Umschalter
+    function switchPage(pageId, navId) {
+        document.querySelectorAll('.page-content').forEach(page => {
+            page.classList.remove('active');
+        });
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+
+        document.getElementById('page-' + pageId).classList.add('active');
+        document.getElementById(navId).classList.add('active');
+    }
+
+    // Währung ändern
+    function updateCurrency(newCurr) {
+        // Simple Wechselkurs-Simulation für die Demo
+        if (appData.currency === 'DOGE' && newCurr === 'SAT') {
+            appData.balance = appData.balance * 100;
+        } else if (appData.currency === 'SAT' && newCurr === 'DOGE') {
+            appData.balance = appData.balance / 100;
+        }
+        appData.currency = newCurr;
+        refreshUI();
+        showNotification("Währung aktualisiert! 💱");
+    }
+
+    // Benutzeroberfläche neu zeichnen
+    function refreshUI() {
+        document.getElementById('balance-val').innerText = format(appData.balance);
+        document.getElementById('balance-unit').innerText = appData.currency;
+
+        // Faucet und Task-Ausschüttungstexte
+        document.getElementById('t1-rew').innerText = format(rewardRates[appData.currency]['task-1']) + ' ' + appData.currency;
+        document.getElementById('t2-rew').innerText = format(rewardRates[appData.currency]['task-2']) + ' ' + appData.currency;
+        document.getElementById('faucet-rew').innerText = format(rewardRates[appData.currency]['faucet']) + ' ' + appData.currency;
+        document.getElementById('l1-rew').innerText = format(rewardRates[appData.currency]['link-1']) + ' ' + appData.currency;
+
+        // Level und Balken
+        document.getElementById('level-lbl').innerText = 'Lvl ' + appData.level;
+        document.getElementById('progress-percent').innerText = appData.progress + '%';
+        document.getElementById('progress-bar').style.width = appData.progress + '%';
+        document.getElementById('circle-progress').setAttribute('stroke-dasharray', appData.progress + ', 100');
+
+        // Nächster Meilenstein
+        let left = 3 - (appData.tasksDone % 3);
+        document.getElementById('next-lvl-info').innerText = 'Next: ' + left + ' Tasks';
+    }
+
+    // Fortschritt steuern (und Level-Up triggern)
+    function addProgress() {
+        appData.tasksDone++;
+        appData.progress += 34; // Nach 3 Klicks voll
+        
+        if (appData.progress >= 100) {
+            appData.progress = 0;
+            appData.level++;
+            let bonus = appData.currency === 'SAT' ? 500 : 5.0;
+            appData.balance += bonus;
+            
+            setTimeout(() => {
+                showNotification("👑 LEVEL UP! Du bist jetzt Level " + appData.level + "! Bonus gutgeschrieben.");
+            }, 1000);
+        }
+        refreshUI();
+    }
+
+    // Task mit Lade-Countdown ausführen
+    function triggerTask(taskId, time) {
+        const overlay = document.getElementById('timer-overlay');
+        const num = document.getElementById('timer-num');
+        
+        overlay.classList.add('show');
+        let currentSec = time;
+        num.innerText = currentSec;
+
+        const countdown = setInterval(() => {
+            currentSec--;
+            num.innerText = currentSec;
+
+            if (currentSec <= 0) {
+                clearInterval(countdown);
+                overlay.classList.remove('show');
+                
+                // Belohnung buchen
+                let reward = rewardRates[appData.currency][taskId];
+                appData.balance += reward;
+                addProgress();
+                refreshUI();
+
+                showNotification("🎉 Task geschafft! +" + format(reward) + " " + appData.currency);
+            }
+        }, 1000);
+    }
+
+    // Faucet abholen (mit lokalem Cooldown)
+    function claimFaucet() {
+        const btn = document.getElementById('faucet-btn');
+        btn.disabled = true;
+        btn.style.opacity = '0.5';
+
+        let reward = rewardRates[appData.currency]['faucet'];
+        appData.balance += reward;
+        addProgress();
+        refreshUI();
+
+        showNotification("💧 Claim erfolgreich! +" + format(reward) + " " + appData.currency);
+
+        let cooldown = 30; // 30 Sekunden Cooldown für den Test
+        btn.innerText = "Cooldown: " + cooldown + "s";
+
+        const timer = setInterval(() => {
+            cooldown--;
+            btn.innerText = "Cooldown: " + cooldown + "s";
+            if (cooldown <= 0) {
+                clearInterval(timer);
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                btn.innerText = "Claimen";
+            }
+        }, 1000);
+    }
+
+    // Coupon-Logik
+    function useCoupon() {
+        const field = document.getElementById('coupon-field');
+        const code = field.value.trim().toUpperCase();
+
+        if (code === "") {
+            showNotification("⚠️ Bitte einen Code eingeben!");
+            return;
+        }
+
+        if (appData.usedCoupons.includes(code)) {
+            showNotification("❌ Dieser Code wurde bereits eingelöst!");
+            return;
+        }
+
+        if (code === "KATZENDARIO") {
+            let gift = rewardRates[appData.currency]['coupon-katzendario'];
+            appData.balance += gift;
+            appData.usedCoupons.push(code);
+            field.value = "";
+            refreshUI();
+            showNotification("🎁 Code aktiviert! +" + format(gift) + " " + appData.currency);
+        } else {
+            showNotification("❌ Ungültiger Gutscheincode!");
+        }
+    }
+
+    // Integrierte Toast-Notifications
+    function showNotification(msg) {
+        const toast = document.getElementById('app-toast');
+        toast.innerText = msg;
+        toast.classList.add('show');
+        setTimeout(() => {
+            toast.classList.remove('show');
+        }, 2500);
+    }
+
+    // Zurücksetzen
+    function resetApp() {
+        if (confirm("Möchtest du das aktuelle Spielguthaben zurücksetzen?")) {
+            appData.balance = 0.00000000;
+            appData.level = 0;
+            appData.progress = 0;
+            appData.tasksDone = 0;
+            appData.usedCoupons = [];
+            refreshUI();
+            showNotification("🔄 Statistiken wurden zurückgesetzt.");
+        }
+    }
+
+    // App initialisieren
+    window.onload = function() {
+        refreshUI();
+    };
+</script>
+
+</body>
+</html>
+
+```
